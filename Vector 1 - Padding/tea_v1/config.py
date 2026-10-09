@@ -11,7 +11,7 @@ class Config:
     model: str = os.getenv("LMSTUDIO_MODEL", "mistral-small-3.2-24b-instruct-2506-mlx")
     # Token counter used by the victim cap and the detector.
     # "approx" | "tiktoken:<encoding>" | "hf:<repo_or_local_path>"
-    tokenizer: str = os.getenv("TEA_TOKENIZER", "hf:")
+    tokenizer: str = os.getenv("TEA_TOKENIZER", "approx")
     # Fixed completion budget so that output cost is constant and only input varies.
     max_completion_tokens: int = 64
     temperature: float = 0.0
