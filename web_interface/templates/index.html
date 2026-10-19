@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mdl-grid">
+  <div class="mdl-cell mdl-cell--8-col mdl-cell--2-offset">
+    <div class="mdl-card mdl-shadow--2dp chat-card">
+      <div class="mdl-card__title">
+        <h2 class="mdl-card__title-text">Chat</h2>
+      </div>
+      <div class="mdl-card__supporting-text chat-meta">
+        Target Model: <strong>{{ model }}</strong> &middot; Guardrail threshold: <strong>{{ threshold }}</strong>
+      </div>
+      <div id="chat-log" class="chat-log"></div>
+      <div class="mdl-card__actions chat-input-row">
+        <div class="mdl-textfield mdl-js-textfield chat-textfield">
+          <input class="mdl-textfield__input" type="text" id="chat-input" autocomplete="off">
+          <label class="mdl-textfield__label" for="chat-input">Type a message...</label>
+        </div>
+        <button id="send-btn" class="mdl-button mdl-js-button mdl-button--fab mdl-button--colored">
+          <i class="material-icons">send</i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+{% endblock %}

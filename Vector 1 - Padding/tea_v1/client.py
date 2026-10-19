@@ -18,7 +18,7 @@ class LMStudioClient:
         }
         t0 = time.perf_counter()
         try:
-            r = requests.post(self.url, json=payload, timeout=self.cfg.timeout_s)
+            r = requests.post(self.url, json=payload, timeout=self.cfg.timeout_s, proxies={"http": None, "https": None})
         except requests.RequestException as e:
             return {"status": "error", "error": str(e)[:300], "latency_s": time.perf_counter() - t0}
         latency = time.perf_counter() - t0

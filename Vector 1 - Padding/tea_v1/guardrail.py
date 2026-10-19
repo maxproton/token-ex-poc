@@ -10,6 +10,7 @@ Type a prompt on one line, or @path/to/file.txt to load a long prompt from a fil
 """
 from pathlib import Path
 
+from tea_v1.classifier import CLASSIFIER_MODEL, ClassifierUnavailable, classify_coherence, loaded_classifier
 from tea_v1.client import LMStudioClient
 from tea_v1.config import Config
 from tea_v1.detector import ALLOW, Detector, DetectorConfig
@@ -21,6 +22,12 @@ THRESHOLD = 0.70              # reject if score > THRESHOLD. 0.5 is the detector
 MAX_RESPONSE_TOKENS = 512     # cap on the model's answer for accepted prompts
 MIN_TOKENS_FOR_BASELINE = 1000  # the session-size check is ignored for prompts smaller than this
 SHOW_BREAKDOWN = True         # print the per-check scores
+
+# Semantic check, catches "natural" word-salad padding that passes every stats check above.
+# Costs an extra model round trip, so it only runs on prompts already large enough to matter,
+# and only once the stats-based score has already passed.
+CLASSIFIER_ENABLED = True
+CLASSIFIER_MIN_CHARS = 500    # matches detector.py's min_chars_for_stats: below this, stats are noisy anyway
 
 # Per check: (safe, flag, block). Risk is 0.0 at "safe", 0.5 at "flag", 1.0 at "block", linear in between.
 # Values that sit beyond "safe" (further from "flag") score 0.0. Works whether higher or lower is worse.
@@ -50,8 +57,8 @@ def risk(value, safe, flag, block):
     return 0.5 + 0.5 * (value - flag) / (block - flag)
 
 
-def score_prompt(detector, text):
-    d = detector.inspect(text, SESSION)
+def score_prompt(detector, text, session_id=SESSION):
+    d = detector.inspect(text, session_id)
     parts = {}
     for c in d.checks:
         band = BANDS.get(c.name)
@@ -72,14 +79,58 @@ def read_prompt(raw):
     return raw
 
 
+class Guardrail:
+    """Scores prompts and gates access to the model. Shared by the CLI here and by other
+    front-ends (e.g. the Flask UI in web_interface/) so they apply identical scoring and
+    baseline-tracking rules instead of reimplementing them."""
+
+    def __init__(self, cfg=None):
+        self.cfg = cfg or Config()
+        self.cfg.max_completion_tokens = MAX_RESPONSE_TOKENS
+        count, self.tokens_reliable = make_counter(self.cfg.tokenizer)
+        self.detector = Detector(count, self.tokens_reliable, DetectorConfig(enable_baseline=True))
+        self.client = LMStudioClient(self.cfg)
+
+    def check(self, text, session_id=SESSION):
+        """Score a prompt, update the per-session baseline, and (for long prompts that already
+        passed the stats check) run the semantic coherence check. Returns
+        (allowed, score, parts, decision, classifier_info). classifier_info is None if the
+        semantic check did not run."""
+        d, score, parts = score_prompt(self.detector, text, session_id)
+        allowed = score <= THRESHOLD
+
+        classifier_info = None
+        if allowed and CLASSIFIER_ENABLED and len(text) >= CLASSIFIER_MIN_CHARS:
+            classifier_info = self._classify(text)
+            if classifier_info["label"] == "nonsense":
+                allowed = False
+
+        if not allowed:
+            if d.level == ALLOW:                   # detector already counted it; keep the baseline clean
+                self.detector.history[session_id].pop()
+        elif d.level != ALLOW:                      # detector skipped it, but the guardrail accepted it
+            self.detector.history[session_id].append(d.tokens)
+        return allowed, score, parts, d, classifier_info
+
+    def _classify(self, text):
+        """Load the classifier model, ask it, unload it. Fails open: if the model can't be
+        loaded or the call errors, the semantic check is skipped (stats-based decision stands)
+        rather than blocking every long prompt because of an infrastructure problem."""
+        try:
+            with loaded_classifier(CLASSIFIER_MODEL) as client:
+                return classify_coherence(client, text)
+        except ClassifierUnavailable as e:
+            return {"label": "unknown", "raw": "", "error": str(e)}
+
+    def ask(self, text):
+        """Send an already-accepted prompt to the model."""
+        return self.client.chat(SYSTEM_PROMPT, text)
+
+
 def main():
-    cfg = Config()
-    cfg.max_completion_tokens = MAX_RESPONSE_TOKENS
-    count, reliable = make_counter(cfg.tokenizer)
-    detector = Detector(count, reliable, DetectorConfig(enable_baseline=True))
-    client = LMStudioClient(cfg)
-    print(f"Guardrail ready. Threshold {THRESHOLD}. Model {cfg.model}. Tokenizer {cfg.tokenizer}"
-          + ("" if reliable else " (approx: tokens_per_char check is off)"))
+    guardrail = Guardrail()
+    print(f"Guardrail ready. Threshold {THRESHOLD}. Model {guardrail.cfg.model}. Tokenizer {guardrail.cfg.tokenizer}"
+          + ("" if guardrail.tokens_reliable else " (approx: tokens_per_char check is off)"))
 
     while True:
         try:
@@ -96,22 +147,26 @@ def main():
             print(f"Could not read file: {e}")
             continue
 
-        d, score, parts = score_prompt(detector, text)
+        allowed, score, parts, d, classifier_info = guardrail.check(text)
         driver = max(parts, key=lambda k: parts[k][1]) if parts else "none"
         print(f"tokens~{d.tokens}  chars={d.chars}  score={score:.2f}  (driven by {driver})")
         if SHOW_BREAKDOWN:
             for name, (value, r) in parts.items():
                 print(f"   {name:<18}{value:>10.3f}   risk {r:.2f}")
+            if classifier_info:
+                if classifier_info["error"]:
+                    print(f"   semantic check     skipped (classifier unavailable: {classifier_info['error']})")
+                else:
+                    print(f"   semantic check     {classifier_info['label']}")
 
-        if score > THRESHOLD:
-            if d.level == ALLOW:                   # detector already counted it; keep the baseline clean
-                detector.history[SESSION].pop()
-            print(f"REJECTED: score {score:.2f} is above threshold {THRESHOLD}. The model was not called.")
+        if not allowed:
+            if classifier_info and classifier_info["label"] == "nonsense":
+                print("REJECTED: semantic check found this prompt to be nonsense/padding. The model was not called.")
+            else:
+                print(f"REJECTED: score {score:.2f} is above threshold {THRESHOLD}. The model was not called.")
             continue
 
-        if d.level != ALLOW:                       # detector skipped it, but the guardrail accepted it
-            detector.history[SESSION].append(d.tokens)
-        res = client.chat(SYSTEM_PROMPT, text)
+        res = guardrail.ask(text)
         if res["status"] != "ok":
             print(f"Model error: {res.get('error')}")
             continue

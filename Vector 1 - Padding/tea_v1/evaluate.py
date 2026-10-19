@@ -11,8 +11,10 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
+from .classifier import CLASSIFIER_MODEL, ClassifierUnavailable, classify_coherence, loaded_classifier
 from .config import Config
 from .detector import ALLOW, BLOCK, FLAG, Detector, DetectorConfig
+from .guardrail import read_prompt
 from .legit_samples import WARMUP_PROMPTS, load
 from .tokcount import make_counter
 
@@ -73,9 +75,29 @@ def report(rows):
 def main():
     cfg = Config()
     ap = argparse.ArgumentParser()
-    ap.add_argument("--results", required=True)
+    ap.add_argument("--results", default=None)
     ap.add_argument("--legit-dir", default="corpus/legit")
+    ap.add_argument("--classify", default=None,
+                     help="Run the LLM coherence classifier on one prompt and exit, skipping the "
+                          "--results pipeline. Use @path/to/file.txt to load a long prompt from a file.")
+    ap.add_argument("--classifier-model", default=CLASSIFIER_MODEL,
+                     help="Model id loaded in LM Studio to use as the coherence classifier.")
     args = ap.parse_args()
+
+    if args.classify is not None:
+        text = read_prompt(args.classify)
+        try:
+            with loaded_classifier(args.classifier_model, cfg) as client:
+                result = classify_coherence(client, text)
+        except ClassifierUnavailable as e:
+            raise SystemExit(f"Classifier unavailable: {e}")
+        if result["error"]:
+            raise SystemExit(f"Classifier call failed: {result['error']}")
+        print(f"verdict: {result['label']}  (raw reply: {result['raw']!r})")
+        return
+
+    if not args.results:
+        raise SystemExit("--results is required unless --classify is given")
 
     res_dir = Path(args.results)
     attacks = [json.loads(l) for l in open(res_dir / "prompts.jsonl")]

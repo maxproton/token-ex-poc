@@ -6,9 +6,9 @@ from dataclasses import dataclass
 @dataclass
 class Config:
     # LM Studio local server (Developer tab, start server). Default port is 1234.
-    base_url: str = os.getenv("LMSTUDIO_URL", "http://localhost:1234/v1")
+    base_url: str = os.getenv("LMSTUDIO_URL", "http://127.0.0.1:1234/v1")
     # Must match the identifier of the model loaded in LM Studio.
-    model: str = os.getenv("LMSTUDIO_MODEL", "mistral-small-3.2-24b-instruct-2506-mlx")
+    model: str = os.getenv("LMSTUDIO_MODEL", "huihui-mistral-small-3.2-24b-instruct-2506-abliterated")
     # Token counter used by the victim cap and the detector.
     # "approx" | "tiktoken:<encoding>" | "hf:<repo_or_local_path>"
     tokenizer: str = os.getenv("TEA_TOKENIZER", "approx")

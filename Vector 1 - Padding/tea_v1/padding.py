@@ -94,3 +94,4 @@ def embed(question: str, pad: str, position: str) -> str:
         h = len(pad) // 2
         return f"{pad[:h]}\n\n{question}\n\n{pad[h:]}"
     raise ValueError(position)
+
