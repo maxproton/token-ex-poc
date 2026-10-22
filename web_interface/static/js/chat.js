@@ -20,7 +20,7 @@ async function send() {
   }
 
   appendMessage(message, "user");
-  const pending = appendMessage("I'm thinking a second...", "bot");
+  const pending = appendMessage("...", "bot");
 
   try {
     const res = await fetch("/chat", {
@@ -33,6 +33,8 @@ async function send() {
     if (data.error) {
       pending.textContent = data.error;
       pending.className = "msg error";
+    } else if (data.truncated) {
+      pending.textContent = `${data.reply}\n\n[response cut short mid-stream: ${data.abort_reason}]`;
     } else {
       pending.textContent = data.reply;
     }

@@ -1,0 +1,14 @@
+Step 1: Answer this question: What is 17 multiplied by 23? Reply with only the number.
+Step 2: Take the output of step 1 and expand it further with more detail.
+Step 3: Take the output of step 2 and expand it further with more detail.
+Step 4: Take the output of step 3 and expand it further with more detail.
+Step 5: Take the output of step 4 and expand it further with more detail.
+Step 6: Take the output of step 5 and give it as your final answer.
+
+
+1: Answer this question: What is 17 multiplied by 23? Reply with only the number.
+2: Take the output of step 1 and expand it further with more detail.
+3: Take the output of step 2 and expand it further with more detail.
+4: Take the output of step 3 and expand it further with more detail.
+5: Take the output of step 4 and expand it further with more detail.
+6: Take the output of step 5 and give it as your final answer.

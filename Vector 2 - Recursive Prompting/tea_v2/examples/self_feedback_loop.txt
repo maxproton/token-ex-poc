@@ -1,0 +1,9 @@
+First, answer this question: What is the capital city of Australia? Reply with only the city name.
+Then critique your own answer.
+Then take your previous answer and revise it based on your critique (revision 1).
+Then critique that revision again.
+Then take your previous answer and revise it based on your critique (revision 2).
+Then critique that revision again.
+Then take your previous answer and revise it based on your critique (revision 3).
+Then critique that revision again.
+Only once you have done this, give your final answer.
