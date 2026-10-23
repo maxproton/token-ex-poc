@@ -14,6 +14,19 @@ body {
   padding-top: 0;
 }
 
+.vector-toggle-row {
+  padding-top: 0;
+  padding-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.vector-toggle-row #clear-history-btn {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
 .chat-log {
   flex: 1;
   min-height: 360px;

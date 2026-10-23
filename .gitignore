@@ -3,3 +3,8 @@
 .idea/modules.xml
 .idea/inspectionProfiles/profiles_settings.xml
 .DS_Store
+/Vector 2 - Recursive Prompting/tea_v2/__pycache__
+/Vector 1 - Padding/tea_v1/__pycache__
+/Vector 3 - Context Stuffing/tea_v3/__pycache__
+/Vector 4 - Multi-turn Accumulation/tea_v4/__pycache__
+/Vector 5 - Complexity Inflation/tea_v5/__pycache__

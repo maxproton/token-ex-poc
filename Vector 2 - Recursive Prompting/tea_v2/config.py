@@ -30,6 +30,11 @@ class Config:
     # Tokens/second above this is treated as an anomaly (e.g. near-identical cached emission)
     # rather than genuine generation, for the hardware this harness is expected to run on.
     tps_block: float = 200.0
+    # Abort once reasoning tokens / a caller-supplied reasoning_ceiling_tokens (see
+    # chat_guarded()) reaches this multiple. Unused unless a caller passes that parameter -- it's
+    # how V5 (complexity inflation) plugs its per-prompt predicted reasoning ceiling into this
+    # same output guard instead of needing its own separate streaming call.
+    reasoning_ceiling_block_mult: float = 4.0
     temperature: float = 0.0
     timeout_s: int = 1800
     seed: int = 1234

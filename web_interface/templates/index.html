@@ -9,6 +9,27 @@
       <div class="mdl-card__supporting-text chat-meta">
         Target Model: <strong>{{ model }}</strong> &middot; Guardrail threshold: <strong>{{ threshold }}</strong>
       </div>
+      <div class="mdl-card__supporting-text vector-toggle-row">
+        <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="v3-toggle" id="v3-toggle-label">
+          <input type="checkbox" id="v3-toggle" class="mdl-switch__input" checked>
+          <span class="mdl-switch__label">Vector 3 (Context Stuffing) detection</span>
+        </label>
+        <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="v4-toggle" id="v4-toggle-label">
+          <input type="checkbox" id="v4-toggle" class="mdl-switch__input" checked>
+          <span class="mdl-switch__label">Vector 4 (Multi-turn Accumulation) detection</span>
+        </label>
+        <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="history-toggle" id="history-toggle-label">
+          <input type="checkbox" id="history-toggle" class="mdl-switch__input" checked>
+          <span class="mdl-switch__label">Send conversation history with every request</span>
+        </label>
+        <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="v5-toggle" id="v5-toggle-label">
+          <input type="checkbox" id="v5-toggle" class="mdl-switch__input" checked>
+          <span class="mdl-switch__label">Vector 5 (Complexity Inflation) detection</span>
+        </label>
+        <button id="clear-history-btn" class="mdl-button mdl-js-button mdl-button--raised">
+          Clear history
+        </button>
+      </div>
       <div id="chat-log" class="chat-log"></div>
       <div class="mdl-card__actions chat-input-row">
         <div class="mdl-textfield mdl-js-textfield chat-textfield">

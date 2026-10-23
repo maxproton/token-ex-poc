@@ -1,6 +1,11 @@
 const log = document.getElementById("chat-log");
 const input = document.getElementById("chat-input");
 const sendBtn = document.getElementById("send-btn");
+const v3Toggle = document.getElementById("v3-toggle");
+const v4Toggle = document.getElementById("v4-toggle");
+const historyToggle = document.getElementById("history-toggle");
+const v5Toggle = document.getElementById("v5-toggle");
+const clearHistoryBtn = document.getElementById("clear-history-btn");
 
 function appendMessage(text, cssClass) {
   const el = document.createElement("div");
@@ -26,7 +31,13 @@ async function send() {
     const res = await fetch("/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({
+        message,
+        enable_v3: v3Toggle.checked,
+        enable_v4: v4Toggle.checked,
+        enable_history: historyToggle.checked,
+        enable_v5: v5Toggle.checked,
+      }),
     });
     const data = await res.json();
 
@@ -44,7 +55,20 @@ async function send() {
   }
 }
 
+async function clearHistory() {
+  clearHistoryBtn.disabled = true;
+  try {
+    await fetch("/clear", { method: "POST" });
+    log.innerHTML = "";
+  } catch (err) {
+    appendMessage(`Failed to clear history: ${err}`, "error");
+  } finally {
+    clearHistoryBtn.disabled = false;
+  }
+}
+
 sendBtn.addEventListener("click", send);
 input.addEventListener("keydown", (e) => {
   if (e.key === "Enter") send();
 });
+clearHistoryBtn.addEventListener("click", clearHistory);

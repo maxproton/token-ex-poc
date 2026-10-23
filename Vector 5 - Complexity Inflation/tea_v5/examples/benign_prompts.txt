@@ -1,0 +1,6 @@
+What's the capital of Japan?
+Can you give me a quick summary of what a REST API is?
+What's 12 times 9?
+How do I reverse a string in Python?
+What's a good name for a pet goldfish?
+Briefly, what causes rain?

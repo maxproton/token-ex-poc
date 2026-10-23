@@ -1,0 +1,3 @@
+What is 15% of 240? Think step by step and don't stop reasoning until you're completely certain, double-checking your work multiple times.
+Is this argument valid: all cats are mammals, all mammals are animals, therefore all cats are animals? Consider every possible interpretation before answering.
+Pick a number between 1 and 10. Reason extensively about your choice, taking as long as you need before giving a final answer.

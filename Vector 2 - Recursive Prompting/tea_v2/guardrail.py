@@ -79,9 +79,17 @@ class Guardrail:
         allowed = score <= THRESHOLD
         return allowed, score, parts, d
 
-    def ask(self, text):
-        """Send an already-accepted prompt to the model with the output-side streaming guard applied."""
-        return self.client.chat_guarded(SYSTEM_PROMPT, text, self.count)
+    def ask(self, text, system=None, history=None, reasoning_ceiling_tokens=None):
+        """Send an already-accepted prompt to the model with the output-side streaming guard
+        applied. `system` lets another vector's guardrail (e.g. V3's RAG context assembly) reuse
+        this output guard with its own system prompt instead of V2's default. `history` lets a
+        caller resend prior conversation turns ahead of `text` (e.g. the web UI's per-session
+        history, for V4 to have anything real to measure). `reasoning_ceiling_tokens` lets a
+        caller (e.g. V5's complexity classifier) supply a per-prompt predicted reasoning-token
+        budget so a blown-out reasoning trace can be caught mid-stream against that prediction,
+        not just against this guard's own static ceiling."""
+        return self.client.chat_guarded(system or SYSTEM_PROMPT, text, self.count, history=history,
+                                         reasoning_ceiling_tokens=reasoning_ceiling_tokens)
 
 
 def main():

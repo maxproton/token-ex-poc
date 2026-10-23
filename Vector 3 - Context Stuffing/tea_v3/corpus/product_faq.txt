@@ -1,0 +1,8 @@
+The standard plan includes up to 10 team members and 50GB of storage. Additional seats can be
+added at any time from the billing page and are prorated for the current billing cycle.
+
+Data exports are available in CSV or JSON format from the account settings page. Exports of more
+than 1 million rows are processed as a background job and emailed to you when ready.
+
+Support tickets submitted through the in-app widget are typically answered within one business day.
+Enterprise customers have access to a dedicated Slack channel for faster response times.

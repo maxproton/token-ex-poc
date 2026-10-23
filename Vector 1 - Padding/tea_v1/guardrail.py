@@ -126,6 +126,11 @@ class Guardrail:
         """Send an already-accepted prompt to the model."""
         return self.client.chat(SYSTEM_PROMPT, text)
 
+    def reset_session(self, session_id):
+        """Drop this session's accepted-prompt baseline, e.g. when a front-end starts a clean
+        slate instead of actually rotating session_id."""
+        self.detector.history.pop(session_id, None)
+
 
 def main():
     guardrail = Guardrail()

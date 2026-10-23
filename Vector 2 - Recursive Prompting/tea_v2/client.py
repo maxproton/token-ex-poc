@@ -58,10 +58,14 @@ class LMStudioClient:
         self.cfg = cfg
         self.url = cfg.base_url.rstrip("/") + "/chat/completions"
 
-    def chat(self, system: str, user: str) -> dict:
+    def chat(self, system: str, user: str, history: list = None) -> dict:
+        messages = [{"role": "system", "content": system}]
+        if history:
+            messages.extend(history)
+        messages.append({"role": "user", "content": user})
         payload = {
             "model": self.cfg.model,
-            "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
+            "messages": messages,
             "temperature": self.cfg.temperature,
             "max_tokens": self.cfg.max_completion_tokens,
             "stream": False,
@@ -84,14 +88,25 @@ class LMStudioClient:
             "latency_s": latency,
         }
 
-    def chat_guarded(self, system: str, user: str, count_tokens) -> dict:
+    def chat_guarded(self, system: str, user: str, count_tokens, history: list = None,
+                     reasoning_ceiling_tokens: int = None) -> dict:
         """Stream the completion, checking it at fixed token checkpoints. Aborts the connection
         (status "truncated") on degenerate repetition/compression or on exceeding the predicted
-        ceiling by the block multiplier, rather than waiting for the model to stop on its own."""
+        ceiling by the block multiplier, rather than waiting for the model to stop on its own.
+        `history` is an optional list of prior {"role", "content"} turns, resent ahead of `user`
+        so the model actually sees a growing conversation rather than one isolated message.
+        `reasoning_ceiling_tokens`, if given, is a per-prompt predicted reasoning-token budget
+        (e.g. from V5's complexity classifier); the stream is also aborted once actual reasoning
+        tokens exceed it by `reasoning_ceiling_block_mult`, independent of the (total-token)
+        ceiling check below."""
         cfg = self.cfg
+        messages = [{"role": "system", "content": system}]
+        if history:
+            messages.extend(history)
+        messages.append({"role": "user", "content": user})
         payload = {
             "model": cfg.model,
-            "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
+            "messages": messages,
             "temperature": cfg.temperature,
             "max_tokens": cfg.max_completion_tokens,
             "stream": True,
@@ -127,7 +142,7 @@ class LMStudioClient:
                 tokens = count_tokens(text)
                 if tokens - last_checkpoint_tokens >= cfg.checkpoint_tokens:
                     last_checkpoint_tokens = tokens
-                    abort_reason = self._checkpoint_violation(text, tokens, t0)
+                    abort_reason = self._checkpoint_violation(text, tokens, t0, count_tokens, reasoning_ceiling_tokens)
                     if abort_reason:
                         break
         finally:
@@ -139,7 +154,7 @@ class LMStudioClient:
         reasoning_tokens = count_tokens(reasoning_text) if reasoning_text.strip() else 0
         answer_tokens = count_tokens(answer_text) if answer_text.strip() else 0
         ceiling_ratio = tokens / max(cfg.predicted_ceiling_tokens, 1)
-        return {
+        result = {
             "status": "truncated" if abort_reason else "ok",
             "abort_reason": abort_reason,
             "text": answer_text.strip(),
@@ -154,12 +169,20 @@ class LMStudioClient:
             "compression": _compression_ratio(text),
             "latency_s": latency,
         }
+        if reasoning_ceiling_tokens is not None:
+            result["reasoning_ceiling_ratio"] = reasoning_tokens / max(reasoning_ceiling_tokens, 1)
+        return result
 
-    def _checkpoint_violation(self, text, tokens, t0):
+    def _checkpoint_violation(self, text, tokens, t0, count_tokens, reasoning_ceiling_tokens=None):
         cfg = self.cfg
         ceiling_ratio = tokens / max(cfg.predicted_ceiling_tokens, 1)
         if ceiling_ratio >= cfg.ceiling_block_mult:
             return "ceiling_exceeded"
+        if reasoning_ceiling_tokens is not None:
+            reasoning_text, _ = _split_reasoning(text)
+            reasoning_tokens = count_tokens(reasoning_text) if reasoning_text.strip() else 0
+            if reasoning_tokens / max(reasoning_ceiling_tokens, 1) >= cfg.reasoning_ceiling_block_mult:
+                return "reasoning_ceiling_exceeded"
         rep = _repetition_ratio(text)
         if rep >= cfg.output_rep_block:
             return "degenerate_repetition"
